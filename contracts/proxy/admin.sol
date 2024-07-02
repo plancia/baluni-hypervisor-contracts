@@ -8,24 +8,29 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 /// @title Admin
 
 contract Admin {
-
     address public admin;
-		bool public ownerFixed = false;
+    bool public ownerFixed = false;
     mapping(address => address) public rebalancers;
     mapping(address => address) public advisors;
 
-    modifier onlyAdmin {
+    modifier onlyAdmin() {
         require(msg.sender == admin, "only admin");
         _;
     }
 
     modifier onlyAdvisor(address hypervisor) {
-        require(msg.sender == advisors[hypervisor], "only advisor");
+        require(
+            msg.sender == advisors[hypervisor] || msg.sender == admin,
+            "only advisor"
+        );
         _;
     }
 
     modifier onlyRebalancer(address hypervisor) {
-        require(msg.sender == rebalancers[hypervisor], "only rebalancer");
+        require(
+            msg.sender == rebalancers[hypervisor] || msg.sender == admin,
+            "only rebalancer"
+        );
         _;
     }
 
@@ -46,10 +51,18 @@ contract Admin {
         int24 _limitLower,
         int24 _limitUpper,
         address _feeRecipient,
-        uint256[4] memory inMin, 
+        uint256[4] memory inMin,
         uint256[4] memory outMin
     ) external onlyRebalancer(_hypervisor) {
-        IHypervisor(_hypervisor).rebalance(_baseLower, _baseUpper, _limitLower, _limitUpper, _feeRecipient, inMin, outMin);
+        IHypervisor(_hypervisor).rebalance(
+            _baseLower,
+            _baseUpper,
+            _limitLower,
+            _limitUpper,
+            _feeRecipient,
+            inMin,
+            outMin
+        );
     }
 
     /// @notice Pull liquidity tokens from liquidity and receive the tokens
@@ -60,29 +73,37 @@ contract Admin {
     /// @return base0 amount of token0 received from base position
     /// @return base1 amount of token1 received from base position
     function pullLiquidity(
-      address _hypervisor,
-      int24 tickLower,
-      int24 tickUpper,
-      uint128 shares,
-      uint256[2] memory minAmounts
-    ) external onlyRebalancer(_hypervisor) returns(
-        uint256 base0,
-        uint256 base1
-      ) {
-      (base0, base1) = IHypervisor(_hypervisor).pullLiquidity(tickLower, tickUpper, shares, minAmounts);
+        address _hypervisor,
+        int24 tickLower,
+        int24 tickUpper,
+        uint128 shares,
+        uint256[2] memory minAmounts
+    )
+        external
+        onlyRebalancer(_hypervisor)
+        returns (uint256 base0, uint256 base1)
+    {
+        (base0, base1) = IHypervisor(_hypervisor).pullLiquidity(
+            tickLower,
+            tickUpper,
+            shares,
+            minAmounts
+        );
     }
 
     function pullLiquidity(
-      address _hypervisor,
-      uint256 shares,
-      uint256[4] memory minAmounts 
-    ) external onlyRebalancer(_hypervisor) returns(
-        uint256 base0,
-        uint256 base1,
-        uint256 limit0,
-        uint256 limit1
-      ) {
-      (base0, base1, limit0, limit1) = IHypervisor(_hypervisor).pullLiquidity(shares, minAmounts);
+        address _hypervisor,
+        uint256 shares,
+        uint256[4] memory minAmounts
+    )
+        external
+        onlyRebalancer(_hypervisor)
+        returns (uint256 base0, uint256 base1, uint256 limit0, uint256 limit1)
+    {
+        (base0, base1, limit0, limit1) = IHypervisor(_hypervisor).pullLiquidity(
+            shares,
+            minAmounts
+        );
     }
 
     function addLiquidity(
@@ -93,14 +114,25 @@ contract Admin {
         uint256 amount1,
         uint256[2] memory inMin
     ) external onlyRebalancer(_hypervisor) {
-        IHypervisor(_hypervisor).addLiquidity(tickLower, tickUpper, amount0, amount1, inMin);
+        IHypervisor(_hypervisor).addLiquidity(
+            tickLower,
+            tickUpper,
+            amount0,
+            amount1,
+            inMin
+        );
     }
 
     /// @notice Add tokens to base liquidity
     /// @param _hypervisor Hypervisor Address
     /// @param amount0 Amount of token0 to add
     /// @param amount1 Amount of token1 to add
-    function addBaseLiquidity(address _hypervisor, uint256 amount0, uint256 amount1, uint256[2] memory inMin) external onlyRebalancer(_hypervisor) {
+    function addBaseLiquidity(
+        address _hypervisor,
+        uint256 amount0,
+        uint256 amount1,
+        uint256[2] memory inMin
+    ) external onlyRebalancer(_hypervisor) {
         IHypervisor(_hypervisor).addBaseLiquidity(amount0, amount1, inMin);
     }
 
@@ -108,33 +140,53 @@ contract Admin {
     /// @param _hypervisor Hypervisor Address
     /// @param amount0 Amount of token0 to add
     /// @param amount1 Amount of token1 to add
-    function addLimitLiquidity(address _hypervisor, uint256 amount0, uint256 amount1, uint256[2] memory inMin) external onlyRebalancer(_hypervisor) {
+    function addLimitLiquidity(
+        address _hypervisor,
+        uint256 amount0,
+        uint256 amount1,
+        uint256[2] memory inMin
+    ) external onlyRebalancer(_hypervisor) {
         IHypervisor(_hypervisor).addLimitLiquidity(amount0, amount1, inMin);
     }
 
-    /// @notice compound pending fees 
+    /// @notice compound pending fees
     /// @param _hypervisor Hypervisor Address
-    function compound( address _hypervisor) external onlyAdvisor(_hypervisor) returns(
-        uint128 baseToken0Owed,
-        uint128 baseToken1Owed,
-        uint128 limitToken0Owed,
-        uint128 limitToken1Owed,
-        uint256[4] memory inMin
-    ) {
+    function compound(
+        address _hypervisor
+    )
+        external
+        onlyAdvisor(_hypervisor)
+        returns (
+            uint128 baseToken0Owed,
+            uint128 baseToken1Owed,
+            uint128 limitToken0Owed,
+            uint128 limitToken1Owed,
+            uint256[4] memory inMin
+        )
+    {
         IHypervisor(_hypervisor).compound();
     }
 
-    function compound( address _hypervisor, uint256[4] memory inMin)
-      external onlyAdvisor(_hypervisor) returns(
-        uint128 baseToken0Owed,
-        uint128 baseToken1Owed,
-        uint128 limitToken0Owed,
-        uint128 limitToken1Owed
-    ) {
+    function compound(
+        address _hypervisor,
+        uint256[4] memory inMin
+    )
+        external
+        onlyAdvisor(_hypervisor)
+        returns (
+            uint128 baseToken0Owed,
+            uint128 baseToken1Owed,
+            uint128 limitToken0Owed,
+            uint128 limitToken1Owed
+        )
+    {
         IHypervisor(_hypervisor).compound(inMin);
     }
     /// @param _hypervisor Hypervisor Address
-    function setWhitelist(address _hypervisor, address newWhitelist) external onlyAdmin {
+    function setWhitelist(
+        address _hypervisor,
+        address newWhitelist
+    ) external onlyAdmin {
         IHypervisor(_hypervisor).setWhitelist(newWhitelist);
     }
 
@@ -151,25 +203,37 @@ contract Admin {
 
     /// @param _hypervisor Hypervisor Address
     /// @param newOwner New Owner Address
-    function transferHypervisorOwner(address _hypervisor, address newOwner) external onlyAdmin {
-				require(!ownerFixed, "permanent owner in place");
+    function transferHypervisorOwner(
+        address _hypervisor,
+        address newOwner
+    ) external onlyAdmin {
+        require(!ownerFixed, "permanent owner in place");
         IHypervisor(_hypervisor).transferOwnership(newOwner);
     }
 
-		// @dev permanently disable hypervisor ownership transfer 
-		function fixOwnership() external onlyAdmin {
-			ownerFixed = false;
-		}
+    // @dev permanently disable hypervisor ownership transfer
+    function fixOwnership() external onlyAdmin {
+        ownerFixed = false;
+    }
 
     /// @param newAdvisor New Advisor Address
-    function setAdvisor(address _hypervisor, address newAdvisor) external onlyAdmin {
+    function setAdvisor(
+        address _hypervisor,
+        address newAdvisor
+    ) external onlyAdmin {
         require(newAdvisor != address(0), "newAdvisor should be non-zero");
         advisors[_hypervisor] = newAdvisor;
     }
 
     /// @param newRebalancer New Rebalancer Address
-    function setRebalancer(address _hypervisor, address newRebalancer) external onlyAdmin {
-        require(newRebalancer != address(0), "newRebalancer should be non-zero");
+    function setRebalancer(
+        address _hypervisor,
+        address newRebalancer
+    ) external onlyAdmin {
+        require(
+            newRebalancer != address(0),
+            "newRebalancer should be non-zero"
+        );
         rebalancers[_hypervisor] = newRebalancer;
     }
 
@@ -182,7 +246,7 @@ contract Admin {
     }
 
     /// @param _hypervisor Hypervisor Address
-    /// @param newFee fee amount 
+    /// @param newFee fee amount
     function setFee(address _hypervisor, uint8 newFee) external onlyAdmin {
         IHypervisor(_hypervisor).setFee(newFee);
     }
