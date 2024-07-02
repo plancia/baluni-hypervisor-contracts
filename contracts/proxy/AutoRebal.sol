@@ -18,7 +18,6 @@ contract AutoRebal {
     address public advisor;
     address public feeRecipient;
     IUniswapV3Pool public pool;
-    IHypervisor public hypervisor;
     int24 public limitWidth = 1;
 
     modifier onlyAdvisor() {
@@ -31,11 +30,11 @@ contract AutoRebal {
         _;
     }
 
-    constructor(address _admin, address _advisor) {
+    constructor(address _admin) {
         require(_admin != address(0), "_admin should be non-zero");
-        require(_advisor != address(0), "_advisor should be non-zero");
         admin = _admin;
-        advisor = _advisor;
+        advisor = _admin;
+        feeRecipient = admin;
     }
 
     function liquidityOptions(
@@ -115,7 +114,9 @@ contract AutoRebal {
     }
 
     /// @notice compound pending fees
-    function compound()
+    function compound(
+        address _hypervisor
+    )
         external
         onlyAdvisor
         returns (
@@ -126,7 +127,9 @@ contract AutoRebal {
             uint256[4] memory inMin
         )
     {
-        hypervisor.compound();
+        IHypervisor hypervisor = IHypervisor(_hypervisor);
+        uint256[4] memory inMin;
+        hypervisor.compound(inMin);
     }
 
     /// @param newAdmin New Admin Address
@@ -147,5 +150,19 @@ contract AutoRebal {
     function setRecipient(address _recipient) external onlyAdmin {
         require(feeRecipient == address(0), "fee recipient already set");
         feeRecipient = _recipient;
+    }
+
+    function setAdvisor(address _advisor) external onlyAdmin {
+        require(_advisor != address(0), "_advisor should be non-zero");
+        advisor = _advisor;
+    }
+
+    /// @param _hypervisor Hypervisor Address
+    /// @param newOwner New Owner Address
+    function transferHypervisorOwner(
+        address _hypervisor,
+        address newOwner
+    ) external onlyAdmin {
+        IHypervisor(_hypervisor).transferOwnership(newOwner);
     }
 }
