@@ -5,7 +5,6 @@ import "@typechain/hardhat";
 import "hardhat-watcher";
 import "./scripts/copy-uniswap-v3-artifacts.ts";
 import "./tasks/hypervisor";
-import "./tasks/swap";
 import { parseUnits } from "ethers/lib/utils";
 import { HardhatUserConfig } from "hardhat/types";
 require("dotenv").config();

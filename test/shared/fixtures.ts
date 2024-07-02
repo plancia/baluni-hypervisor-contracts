@@ -9,6 +9,7 @@ import {
   UniswapV3PoolDeployer,
   TokeHypervisorFactory,
   SwapRouter,
+  UniswapV3Factory,
 } from "../../typechain";
 
 import { Fixture } from "ethereum-waffle";
@@ -29,8 +30,12 @@ async function uniswapV3Fixture(): Promise<UniswapV3Fixture> {
   console.log("WETH deployed");
 
   const routerFactory = await ethers.getContractFactory("SwapRouter");
-  const router = (await routerFactory.deploy()) as SwapRouter;
+  const router = (await routerFactory.deploy(
+    factory.address,
+    WETH.address
+  )) as SwapRouter;
   console.log("Router deployed");
+
   return { factory, router };
 }
 

@@ -2,6 +2,7 @@ import { formatEther, formatUnits, parseUnits } from "ethers/lib/utils";
 import { task } from "hardhat/config";
 import { deployContract } from "./utils";
 import { FeeAmount, MaxUint256 } from "./shared/utilities";
+import { UniProxy } from "../typechain/UniProxy";
 import {
   baseTicksFromCurrentTick,
   limitTicksFromCurrentTick,
@@ -100,11 +101,6 @@ task("deploy-hypervisor-factory", "Deploy Hypervisor contract").setAction(
     console.log("  ETH", formatEther(await signer.getBalance()));
 
     // deploy contracts
-
-    const hypervisorFactoryFactory = await ethers.getContractFactory(
-      "HypervisorFactory"
-    );
-
     const hypervisorFactory = await deployContract(
       "HypervisorFactory",
       await ethers.getContractFactory("HypervisorFactory"),
@@ -206,6 +202,10 @@ task("deploy-hypervisor", "Deploy Hypervisor contract via the factory")
       args.name,
       args.symbol
     );
+
+    await hypervisor.deployTransaction.wait(5);
+
+    console.log("Hypervisor deployed at", hypervisor.address);
   });
 
 task("verify-hypervisor", "Verify Hypervisor contract")
@@ -394,6 +394,10 @@ task("initialize-hypervisor", "Initialize Hypervisor contract")
     // Set Whitelist
     console.log("Whitelist Signer...");
     await hypervisor.setWhitelist(signer.address);
+    console.log("Success");
+
+    console.log("Whitelist UniProxy...");
+    await hypervisor.setWhitelist(cliArgs.UniProxy);
     console.log("Success");
 
     // Make First Deposit
